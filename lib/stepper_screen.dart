@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:level_stepper/level_doc_stepper.dart';
 
 class StepperScreen extends StatefulWidget {
 
@@ -10,6 +12,19 @@ class StepperScreen extends StatefulWidget {
 
 class _StepperScreenState extends State<StepperScreen> {
 
+  var level_one = Size.zero;
+  var level_two = Size.zero;
+  var level_three = Size.zero;
+
+  double initLevelHeight = 70.0;
+  double buttonHeight = 50;
+
+  final ValueNotifier<double> levelOneSizeValueListener = new ValueNotifier(0.0);
+  final ValueNotifier<double> levelTwoSizeValueListener = new ValueNotifier(0.0);
+  final ValueNotifier<double> levelThreeSizeValueListener = new ValueNotifier(0.0);
+
+  DocVerification docVerification;
+
   @override
   void initState() {
     super.initState();
@@ -18,8 +33,7 @@ class _StepperScreenState extends State<StepperScreen> {
   @override
   Widget build(BuildContext context) {
 
-
-    Map<String, bool> levelStates = {"level 1" : true, "level 2": false, "level 3": false};
+    docVerification = DocVerification.fromJson(DocVerification().level_data);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -30,130 +44,141 @@ class _StepperScreenState extends State<StepperScreen> {
 
             SizedBox(height: 60,),
 
-            Container(
-              child: Row(children: [
+            levelDocView(docVerification),
 
-                Column(
-                  children: [
-
-                    // circleState(mainSize: 10, innerSize: 7),
-
-                    checkedState(),
-
-                    Container(
-                      color: Colors.green,
-                      height: 170,
-                      width: 3,
-                    ),
-
-                ],),
-
-                SizedBox(width: 10,),
-
-                Container(
-                  height: 190,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Level 1"),
-                      SizedBox(height: 10,),
-                      Text("BANK TRANSFERS", style: TextStyle(color: Colors.black87, fontSize: 12)),
-                      SizedBox(height: 5,),
-                      Text("₦ 200,000", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54),),
-                      SizedBox(height: 10,),
-                      stateToCheck(childDesc: Text("Complete your profile", style: TextStyle(color: Colors.black45),), state: true),
-                      stateToCheck(childDesc: Text("Verify BVN", style: TextStyle(color: Colors.black45),), state: true),
-                      stateToCheck(childDesc: Text("Verify phone number", style: TextStyle(color: Colors.black45),), state: true),
-                      SizedBox(height: 5,),
-                      activateLevelButton(levelState: levelStates["level 1"], isNextState: true, levelButtonDes: "Verify identity"),
-                  ],),
-                ),
-
-              ],),
-            ),
-
-            Container(
-              child: Row(
-                children: [
-
-                Column(
-                  children: [
-
-                    circleState(mainSize: 10, innerSize: 7, isNext: true),
-
-                    Container(
-                      color: Colors.black26,
-                      height: 140,
-                      width: 3,
-                    ),
-
-                  ],),
-
-                SizedBox(width: 10,),
-
-                Container(
-                  height: 160,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Level 2"),
-                      SizedBox(height: 10,),
-                      Text("BANK TRANSFERS", style: TextStyle(color: Colors.black87, fontSize: 12)),
-                      SizedBox(height: 5,),
-                      Text("₦ 1,000,000", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54),),
-                      SizedBox(height: 10,),
-                      stateToCheck(childDesc: Text("Verify identity", style: TextStyle(color: Colors.black45),), state: true),
-                      SizedBox(height: 5,),
-                      activateLevelButton(levelState: levelStates["level 2"], isNextState: true, levelButtonDes: "Verify identity"),
-                    ],),
-                ),
-
-              ],),
-            ),
-
-            Container(
-              child: Row(
-                children: [
-
-                Column(
-                  children: [
-
-                    circleState(mainSize: 10, innerSize: 7, isNext: false),
-
-                    Container(
-                      // color: Colors.green,
-                      height: 150,
-                      width: 3,
-                    ),
-
-                  ],),
-
-                SizedBox(width: 10,),
-
-                Container(
-                  height: 170,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Level 3"),
-                      SizedBox(height: 10,),
-                      Text("BANK TRANSFERS", style: TextStyle(color: Colors.black87, fontSize: 12)),
-                      SizedBox(height: 5,),
-                      Text("₦ 10,000,000", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54),),
-                      SizedBox(height: 10,),
-                      stateToCheck(childDesc: Text("Verify residential address", style: TextStyle(color: Colors.black45),)),
-                      SizedBox(height: 5,),
-                      activateLevelButton(levelState: levelStates["level 3"], isNextState: false, levelButtonDes: "Verify residential address"),
-                    ],
-                  ),
-                ),
-              ],),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget levelDocView(DocVerification docVerification) {
+
+    int value = 0;
+    var totalStateLevel = [];
+
+    docVerification.levelData.forEach((element) {
+
+      element.docs.asMap().forEach((key, value) {
+
+        if(value.isCompleted == false) {
+
+          totalStateLevel.add(true);
+
+        }
+      });
+
+    });
+
+    print(totalStateLevel.length);
+
+    return Column(
+      children: docVerification.levelData.map((e) {
+
+        value++;
+
+        var stateLevel = e.docs.where((element) => element.isCompleted == false);
+
+        return docTypes(
+          docsList: e.docs,
+          totalDoc: e.docs.length,
+          levelName: e.name,
+          nextVerificationIndex: (docVerification.levelData.length - totalStateLevel.length) + 1,
+          position: value,
+          totalLevelDoc: docVerification.levelData.length,
+          activateButtonDes: stateLevel.length != 0 ? stateLevel.toList()[0].docName : "",
+          levelReward: "200, 000",
+          levelSubDesc: "Something",
+        );
+      }).toList(),
+    );
+
+  }
+
+
+  Widget docTypes({
+    List<Docs> docsList,
+    int totalDoc,
+    String levelName,
+    String levelSubDesc,
+    String levelReward,
+    int totalLevelDoc,
+    int position,
+    int nextVerificationIndex,
+    String activateButtonDes}) {
+
+    final ValueNotifier<double> levelOneSizeValueListener = new ValueNotifier(0.0);
+
+    print("nextVerificationIndex: " + nextVerificationIndex.toString());
+    print("position: " + position.toString());
+
+    return ValueListenableBuilder(
+        valueListenable: levelThreeSizeValueListener,
+        builder: (context, double value, child) {
+
+          print(value.toString());
+
+          return MeasureSize(
+            onChange: (size) {
+
+              levelThreeSizeValueListener.value = size.height;
+              print(levelThreeSizeValueListener.value);
+
+            },
+            child: Container(
+              height: totalDoc <= 2 ? initLevelHeight * 3 : (initLevelHeight * totalDoc),
+              child: Row(
+                children: [
+
+                  Column(
+                    children: [
+
+                      position <= nextVerificationIndex - 1 ? checkedState() : circleState(mainSize: 10, innerSize: 7, isNext: position == nextVerificationIndex),
+
+                      if(totalLevelDoc != position) ... [
+
+                        Container(
+                          color: position <= nextVerificationIndex - 1 ? Colors.green : Colors.grey,
+                          height: value - 20,
+                          width: 3,
+                        ),
+
+                      ] else ... [
+
+                      ],
+
+                    ],),
+
+                  SizedBox(width: 10,),
+
+                  Container(
+                    height: value,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(levelName),
+                        SizedBox(height: 10,),
+                        Text(levelSubDesc, style: TextStyle(color: Colors.black87, fontSize: 12)),
+                        SizedBox(height: 5,),
+                        Text(levelReward, style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54),),
+
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: docsList.map((e) {
+                            return stateToCheck(state: e.isCompleted, docDesc: e.docName);
+                          }).toList(),),
+                        SizedBox(height: 10,),
+                        position == nextVerificationIndex ? activateLevelButton(levelButtonDes: activateButtonDes) : SizedBox(height: 1,),
+                      ],
+                    ),
+                  ),
+                ],),
+            ),
+          );
+
+    });
   }
 
 
@@ -169,22 +194,27 @@ class _StepperScreenState extends State<StepperScreen> {
     );
   }
 
-  Widget activateLevelButton({bool levelState, bool isNextState, String levelButtonDes}) {
-    return levelState == false && isNextState == true ? updateButton(updateActionText: levelButtonDes) : Expanded(child: SizedBox(height: 10,));
+  Widget activateLevelButton({String levelButtonDes}) {
+    return updateButton(updateActionText: levelButtonDes);
   }
 
   Widget checkedState({double size}) {
     return checked(size: size);
   }
 
-  Widget stateToCheck({bool state, Widget childDesc}) {
-    return Row(
+  Widget stateToCheck({bool state, String docDesc}) {
+    return Column(
       children: [
-        state == null || state == false ? circleState() : checkedState(size: 15),
-        SizedBox(width: 6,),
-        Padding(
-          padding: const EdgeInsets.only(top: 5, bottom: 5),
-          child: childDesc,
+        SizedBox(height: 6,),
+        Row(
+          children: [
+            state == null || state == false ? circleState() : checkedState(size: 15),
+            SizedBox(width: 6,),
+            Padding(
+              padding: const EdgeInsets.only(top: 5, bottom: 5),
+              child: Text(docDesc, style: TextStyle(color: Colors.black45),),
+            ),
+          ],
         ),
       ],
     );
@@ -213,4 +243,41 @@ class _StepperScreenState extends State<StepperScreen> {
     );
   }
 
+}
+
+typedef void OnWidgetSizeChange(Size size);
+
+class MeasureSizeRenderObject extends RenderProxyBox {
+  Size oldSize;
+  final OnWidgetSizeChange onChange;
+
+  MeasureSizeRenderObject(this.onChange);
+
+  @override
+  void performLayout() {
+    super.performLayout();
+
+    Size newSize = child.size;
+    if (oldSize == newSize) return;
+
+    oldSize = newSize;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      onChange(newSize);
+    });
+  }
+}
+
+class MeasureSize extends SingleChildRenderObjectWidget {
+  final OnWidgetSizeChange onChange;
+
+  const MeasureSize({
+    Key key,
+    @required this.onChange,
+    @required Widget child,
+  }) : super(key: key, child: child);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return MeasureSizeRenderObject(onChange);
+  }
 }
